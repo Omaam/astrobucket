@@ -1,2 +1,2 @@
 # astrobucket
-Astronomical data 
+Astronomical data bucket 

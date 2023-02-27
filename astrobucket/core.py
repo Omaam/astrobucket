@@ -22,7 +22,8 @@ class Client:
         TypeError: If `obsid` is not str.
     """
     def __init__(self, fits_path: str, object_name: str,
-                 satelite: str, obsid: str):
+                 satelite: str, obsid: str, verbose: bool = True,
+                 save_cache: bool = True):
         if not isinstance(obsid, str):
             raise TypeError(f"{type(obsid)} is not supported.")
 
@@ -30,11 +31,12 @@ class Client:
         self.object_name = object_name
         self.satelite = satelite
         self.obsid = obsid
+        self.verbose = verbose
 
         # self.inputs[1] indicate creation mode (={"curve", "spectrum"}).
         self.inputs = [fits_path, "none", object_name, satelite, obsid]
 
-        self.server = Server(Config.cache_path)
+        self.server = Server(Config.cache_path, verbose, save_cache)
 
     def clear_cache(self, mode: str, *args):
         inputs = copy.copy(self.inputs)
@@ -51,7 +53,8 @@ class Client:
             raise NotImplementedError()
         self.server.clear_cache(*inputs)
 
-    def request_curve(self, dt: float, energy_range_kev: tuple or list):
+    def request_curve(self, dt: float, energy_range_kev: tuple or list,
+                      verbose: bool = True):
         inputs = copy.copy(self.inputs)
         inputs[1] = "curve"
         inputs.extend([dt, (energy_range_kev[0], energy_range_kev[1])])
@@ -62,7 +65,8 @@ class Client:
         table = open_fits_astable(self.fits_path)
         return table
 
-    def request_spectrum(self, de: float, energy_range_kev: tuple):
+    def request_spectrum(self, de: float, energy_range_kev: tuple,
+                         verbose: bool = True):
         inputs = copy.copy(self.inputs)
         inputs[1] = "spectum"
         inputs.extend([de, energy_range_kev])
@@ -156,8 +160,11 @@ class Server:
     If cache exists, return that. If not, inputs are passed to
     Creator instance.
     """
-    def __init__(self, cache_path: str):
+    def __init__(self, cache_path: str, verbose: bool = True,
+                 save_cache: bool = True):
         self.cache_path = cache_path
+        self.verbose = verbose
+        self.save_cache = save_cache
 
     def _check_cache(self, filename: str):
         search_path = os.path.join(self.cache_path, filename)
@@ -168,22 +175,26 @@ class Server:
         return target_hash
 
     def clear_cache(self, *inputs):
-        basename = Namer().get_name(inputs[1:])
+        basename = Namer().get_name(*inputs[1:])
         filename_hash = self._convert2hash(basename)
         fits_path = os.path.join(self.cache_path, filename_hash)
         if os.path.exists(fits_path):
             os.remove(fits_path)
 
     def request(self, *inputs):
-
-        basename = Namer().get_name(inputs[1:])
+        basename = Namer().get_name(*inputs[1:])
         filename_hash = self._convert2hash(basename)
         fits_path = os.path.join(self.cache_path, filename_hash)
 
         exist = self._check_cache(filename_hash)
         if not exist:
             tmp_fits_path = Creator().create(*inputs)
-            shutil.copy(tmp_fits_path, fits_path)
+            if self.save_cache:
+                shutil.copy(tmp_fits_path, fits_path)
+                fits_path = tmp_fits_path
+        else:
+            if self.verbose:
+                print(f"use cache for {basename}")
         table = open_fits_astable(fits_path)
 
         return table

@@ -11,14 +11,8 @@ from core import Client
 
 
 class ClientTest(unittest.TestCase):
-    def test_request_curve_type(self):
-        obsid = "1200120103"
-        fits_path = "/home/omama/Data/MAXI_J1820p070/nicer_data/DataSet/" \
-                    f"MainSet/{obsid}/xti/" \
-                    f"event_cl/bc{obsid}_0mpu7_cl.evt"
-        client = Client(fits_path, "MAXI J1820+070", "NICER", obsid)
-        table = client.request_curve(0.1, [0.5, 10.0])
-        self.assertTrue(isinstance(table, Table))
+    def setUp(self):
+        self.client_args_list = []
 
     def test_request_curve_cache(self):
 
@@ -28,14 +22,33 @@ class ClientTest(unittest.TestCase):
                     f"event_cl/bc{obsid}_0mpu7_cl.evt"
 
         curve_args = [0.1, (0.5, 10.0)]
-        client = Client(fits_path, "MAXI J1820+070", "NICER", obsid)
-        client.clear_cache("curve", *curve_args)
-        table_first = client.request_curve(*curve_args)
+        client1 = Client(fits_path, "MAXI J1820+070", "NICER", obsid)
+        table1 = client1.request_curve(*curve_args)
 
-        client = Client(fits_path, "MAXI J1820+070", "NICER", obsid)
-        table_second = client.request_curve(*curve_args)
+        client2 = Client(fits_path, "MAXI J1820+070", "NICER", obsid)
+        table2 = client2.request_curve(*curve_args)
 
-        self.assertTrue(np.array_equal(table_first, table_second))
+        self.assertTrue(np.array_equal(table1, table2))
+
+        self.client_args_list.append([client1, "curve", curve_args])
+        self.client_args_list.append([client2, "curve", curve_args])
+
+    def test_request_curve_type(self):
+        obsid = "1200120102"
+        fits_path = "/home/omama/Data/MAXI_J1820p070/nicer_data/DataSet/" \
+                    f"MainSet/{obsid}/xti/" \
+                    f"event_cl/bc{obsid}_0mpu7_cl.evt"
+
+        curve_args = [0.1, (0.5, 10.0)]
+        client = Client(fits_path, "MAXI J1820+070", "NICER", obsid)
+        table = client.request_curve(*curve_args)
+        self.assertTrue(isinstance(table, Table))
+
+        self.client_args_list.append([client, "curve", curve_args])
+
+    def tearDown(self):
+        for (client, mode, args) in self.client_args_list:
+            client.clear_cache(mode, *args)
 
 
 class NamerTest(unittest.TestCase):

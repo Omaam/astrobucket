@@ -1,7 +1,7 @@
 """Stellite module.
 
 Note:
-    First letter and following letters of satelite class must be
+    First letter and following letters of satellite class must be
     uppercase and lowercase letter.
 """
 import sys

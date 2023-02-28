@@ -22,19 +22,19 @@ class Client:
         TypeError: If `obsid` is not str.
     """
     def __init__(self, fits_path: str, object_name: str,
-                 satelite: str, obsid: str, verbose: bool = True,
+                 satellite: str, obsid: str, verbose: bool = True,
                  save_cache: bool = True):
         if not isinstance(obsid, str):
             raise TypeError(f"{type(obsid)} is not supported.")
 
         self.fits_path = fits_path
         self.object_name = object_name
-        self.satelite = satelite
+        self.satellite = satellite
         self.obsid = obsid
         self.verbose = verbose
 
         # self.inputs[1] indicate creation mode (={"curve", "spectrum"}).
-        self.inputs = [fits_path, "none", object_name, satelite, obsid]
+        self.inputs = [fits_path, "none", object_name, satellite, obsid]
 
         self.server = Server(Config.cache_path, verbose, save_cache)
 

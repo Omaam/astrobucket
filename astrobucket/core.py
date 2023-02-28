@@ -171,8 +171,21 @@ class Server:
         return os.path.exists(search_path)
 
     def _convert2hash(self, target: object):
-        target_hash = hashlib.sha256(target.encode()).hexdigest()
+        target_hash = hashlib.md5(target.encode()).hexdigest()
         return target_hash
+
+    def _get_eventhash(self, event_path: str):
+        """Get event hash by reading event file.
+        """
+        hash_ = hashlib.md5()
+        with open(event_path, 'rb') as f:
+            while True:
+                chunk = f.read(2048 * hash_.block_size)
+                if len(chunk) == 0:
+                    break
+                hash_.update(chunk)
+        event_hash = hash_.hexdigest()
+        return event_hash
 
     def clear_cache(self, *inputs):
         basename = Namer().get_name(*inputs[1:])
@@ -182,11 +195,16 @@ class Server:
             os.remove(fits_path)
 
     def request(self, *inputs):
+
+        # Use hash from combined hash of filename and event_hash to
+        # ensure that the event file is the same as previous one.
         basename = Namer().get_name(*inputs[1:])
         filename_hash = self._convert2hash(basename)
-        fits_path = os.path.join(self.cache_path, filename_hash)
+        event_hash = self._get_eventhash(inputs[0])
+        reference_hash = self._convert2hash(filename_hash + event_hash)
 
-        exist = self._check_cache(filename_hash)
+        exist = self._check_cache(reference_hash)
+        fits_path = os.path.join(self.cache_path, reference_hash)
         if not exist:
             tmp_fits_path = Creator().create(*inputs)
             if self.save_cache:

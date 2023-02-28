@@ -6,8 +6,6 @@ Note:
 """
 import sys
 
-__all__ = ['get_satellite']
-
 
 class Satellite:
     @property

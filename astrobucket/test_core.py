@@ -3,7 +3,7 @@
 
 import unittest
 
-from astropy.table import Table
+import astropy
 import numpy as np
 
 from core import Namer
@@ -14,37 +14,44 @@ class ClientTest(unittest.TestCase):
     def setUp(self):
         self.client_args_list = []
 
+        self.fits_path = "../tests/dataset/example.evt"
+        self.object_name = "example"
+        self.satellite = "NICER"
+        self.obsid = "0000000000"
+
+    def process_post(self, client: Client, mode: str, curve_args):
+        self.client_args_list.append([client, mode, curve_args])
+
     def test_request_curve_cache(self):
-
-        obsid = "1200120102"
-        fits_path = "/home/omama/Data/MAXI_J1820p070/nicer_data/DataSet/" \
-                    f"MainSet/{obsid}/xti/" \
-                    f"event_cl/bc{obsid}_0mpu7_cl.evt"
-
         curve_args = [0.1, (0.5, 10.0)]
-        client1 = Client(fits_path, "MAXI J1820+070", "NICER", obsid)
+        client1 = Client(self.fits_path, self.object_name,
+                         self.satellite, self.obsid)
         table1 = client1.request_curve(*curve_args)
 
-        client2 = Client(fits_path, "MAXI J1820+070", "NICER", obsid)
+        client2 = Client(self.fits_path, self.object_name,
+                         self.satellite, self.obsid)
         table2 = client2.request_curve(*curve_args)
 
         self.assertTrue(np.array_equal(table1, table2))
 
-        self.client_args_list.append([client1, "curve", curve_args])
-        self.client_args_list.append([client2, "curve", curve_args])
+        self.process_post(client1, "curve", curve_args)
+        self.process_post(client2, "curve", curve_args)
 
     def test_request_curve_type(self):
-        obsid = "1200120102"
-        fits_path = "/home/omama/Data/MAXI_J1820p070/nicer_data/DataSet/" \
-                    f"MainSet/{obsid}/xti/" \
-                    f"event_cl/bc{obsid}_0mpu7_cl.evt"
 
         curve_args = [0.1, (0.5, 10.0)]
-        client = Client(fits_path, "MAXI J1820+070", "NICER", obsid)
+        client = Client(self.fits_path, self.object_name,
+                        self.satellite, self.obsid)
         table = client.request_curve(*curve_args)
-        self.assertTrue(isinstance(table, Table))
+        self.assertTrue(isinstance(table, astropy.table.Table))
 
-        self.client_args_list.append([client, "curve", curve_args])
+        self.process_post(client, "curve", curve_args)
+
+    def test_request_event_type(self):
+        client = Client(self.fits_path, self.object_name,
+                        self.satellite, self.obsid)
+        event_table = client.request_event()
+        self.assertEqual(type(event_table), astropy.table.Table)
 
     def tearDown(self):
         for (client, mode, args) in self.client_args_list:
